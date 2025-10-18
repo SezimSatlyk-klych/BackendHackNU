@@ -8,7 +8,7 @@ from .views import (
 )
 from .llm_views import (
     HalalAnalysisView, CompanyGradingView, ResearchReportView, 
-    LLMTrainingView, BatchAnalysisView
+    LLMTrainingView, BatchAnalysisView, CompanyPredictionView
 )
 
 router = DefaultRouter()
@@ -33,4 +33,5 @@ urlpatterns = [
     path('llm/generate-report/', ResearchReportView.as_view(), name='generate-report'),
     path('llm/prepare-training/', LLMTrainingView.as_view(), name='prepare-training'),
     path('llm/batch-analysis/', BatchAnalysisView.as_view(), name='batch-analysis'),
+    path('llm/prediction/', CompanyPredictionView.as_view(), name='company-prediction'),
 ]

@@ -54,4 +54,5 @@ urlpatterns = [
     path('ai/', include('ai_integration.urls')),
     path('text-to-image/', include('text_to_image.urls')),
     path('broker/', include('broker_company.urls')),
+    path('investments/', include('investments.urls')),
 ]

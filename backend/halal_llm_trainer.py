@@ -8,7 +8,7 @@ import sys
 import django
 import json
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, date
 from typing import Dict, List, Tuple
 import openai
 from sklearn.model_selection import train_test_split
@@ -325,6 +325,99 @@ class HalalAnalysisLLM:
             
         except Exception as e:
             return {"error": f"Ошибка анализа: {e}"}
+
+    def grade_company_from_db(self, assessment: CompanyAssessment) -> Dict:
+        """Рассчитать соответствие и валидность по данным БД без LLM.
+
+        Логика:
+        - Берём оценки по 5 критериям (0-100). Игнорируем нули при среднем.
+        - Проверяем наличие действующего сертификата HalalCertificate по названию компании
+          (status=active и expiry_date >= сегодня). Это влияет на итоговую валидность.
+        - Возвращаем:
+            - compliance_percent (0-100)
+            - halal_valid (bool)
+            - reasons (список строк)
+            - breakdown (оценки по критериям)
+        """
+        try:
+            scores = [
+                assessment.certification_score,
+                assessment.production_score,
+                assessment.ingredients_score,
+                assessment.logistics_score,
+                assessment.company_values_score,
+            ]
+
+            valid_scores = [s for s in scores if isinstance(s, int) and s >= 0]
+            if valid_scores:
+                compliance_percent = round(sum(valid_scores) / len(valid_scores))
+            else:
+                compliance_percent = 0
+
+            # Проверка действующего сертификата по названию компании
+            active_cert_exists = False
+            try:
+                active_cert_exists = HalalCertificate.objects.filter(
+                    company_name__iexact=assessment.company_name,
+                    status='active',
+                    expiry_date__gte=date.today()
+                ).exists()
+            except Exception:
+                active_cert_exists = False
+
+            # Простая логика валидности: сертификат активен И ключевые критерии не ниже порога
+            threshold = 60
+            critical_ok = (
+                assessment.certification_score >= threshold and
+                assessment.production_score >= threshold and
+                assessment.ingredients_score >= threshold
+            )
+            halal_valid = bool(active_cert_exists and critical_ok)
+
+            reasons: List[str] = []
+            if active_cert_exists:
+                reasons.append('Найден действующий сертификат халяльности')
+            else:
+                reasons.append('Нет действующего сертификата халяльности')
+
+            for label, value in [
+                ('Сертификация', assessment.certification_score),
+                ('Производство', assessment.production_score),
+                ('Ингредиенты', assessment.ingredients_score),
+                ('Логистика', assessment.logistics_score),
+                ('Ценности компании', assessment.company_values_score),
+            ]:
+                if value < threshold:
+                    reasons.append(f"Низкая оценка по критерию: {label} ({value}/100)")
+
+            result = {
+                'company_name': assessment.company_name,
+                'halal_valid': halal_valid,
+                'compliance_percent': compliance_percent,
+                'breakdown': {
+                    'certification': assessment.certification_score,
+                    'production': assessment.production_score,
+                    'ingredients': assessment.ingredients_score,
+                    'logistics': assessment.logistics_score,
+                    'company_values': assessment.company_values_score,
+                },
+                'has_active_certificate': active_cert_exists,
+                'status': assessment.status,
+                'assessment_date': assessment.assessment_date.isoformat() if assessment.assessment_date else None,
+                'reasons': reasons,
+                'timestamp': datetime.now().isoformat(),
+                'source': 'database',
+            }
+            return result
+        except Exception as e:
+            return {
+                'company_name': assessment.company_name,
+                'halal_valid': False,
+                'compliance_percent': 0,
+                'error': f'Ошибка расчёта по БД: {e}',
+                'timestamp': datetime.now().isoformat(),
+                'source': 'database'
+            }
     
     def grade_company_compliance(self, company_data):
         """Оценка соответствия компании халяльным стандартам"""

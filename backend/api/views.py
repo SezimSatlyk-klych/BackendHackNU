@@ -14,7 +14,8 @@ class UserViewSet(viewsets.ModelViewSet):
     
     @swagger_auto_schema(
         operation_description="Получить список всех пользователей",
-        responses={200: UserSerializer(many=True)}
+        responses={200: UserSerializer(many=True)},
+        tags=['Пользователи']
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
@@ -22,14 +23,16 @@ class UserViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(
         operation_description="Создать нового пользователя",
         request_body=UserSerializer,
-        responses={201: UserSerializer}
+        responses={201: UserSerializer},
+        tags=['Пользователи']
     )
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
     
     @swagger_auto_schema(
         operation_description="Получить конкретного пользователя по ID",
-        responses={200: UserSerializer}
+        responses={200: UserSerializer},
+        tags=['Пользователи']
     )
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
@@ -37,7 +40,8 @@ class UserViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(
         operation_description="Полностью обновить пользователя",
         request_body=UserSerializer,
-        responses={200: UserSerializer}
+        responses={200: UserSerializer},
+        tags=['Пользователи']
     )
     def update(self, request, *args, **kwargs):
         return super().update(request, *args, **kwargs)
@@ -45,14 +49,16 @@ class UserViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(
         operation_description="Частично обновить пользователя",
         request_body=UserSerializer,
-        responses={200: UserSerializer}
+        responses={200: UserSerializer},
+        tags=['Пользователи']
     )
     def partial_update(self, request, *args, **kwargs):
         return super().partial_update(request, *args, **kwargs)
     
     @swagger_auto_schema(
         operation_description="Удалить пользователя",
-        responses={204: 'Пользователь успешно удален'}
+        responses={204: 'Пользователь успешно удален'},
+        tags=['Пользователи']
     )
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)

@@ -1,9 +1,6 @@
 import openai
 import os
 from typing import Dict, Optional
-from dotenv import load_dotenv
-
-load_dotenv(os.path.join(os.path.dirname(__file__), '../../.env'))
 
 class AIChatService:
     def __init__(self):

@@ -1,0 +1,316 @@
+# ZamanBank iOS-Backend Integration Cursor Rules
+
+## Project Overview
+This is a banking application with iOS frontend (SwiftUI + MVVM) and Django REST API backend. The app provides financial management, goal tracking, AI chat assistance, and voice interactions.
+
+## Backend Architecture Analysis
+
+### Technology Stack
+- **Backend**: Django 4.2.0 + Django REST Framework 3.14.0
+- **Database**: PostgreSQL 15
+- **API Documentation**: drf-yasg (Swagger/OpenAPI)
+- **AI Integration**: OpenAI API
+- **Containerization**: Docker + Docker Compose
+- **Authentication**: Basic Auth (email/password)
+
+### Database Models & Relationships
+
+#### Core Models:
+1. **User** - User accounts (adult/child types)
+   - Fields: id, name, surname, type, email, password
+   - Types: 'adult' | 'child'
+   - **Security Issue**: Passwords stored in plain text (needs hashing)
+
+2. **Finance** - Main financial state
+   - Fields: id, current_state (Decimal), transaction_from (FK), transaction_to (FK), goals (FK)
+   - Central model linking all financial data
+   - **Issue**: No user relationship (all users see all data)
+
+3. **TransactionFrom** - Incoming transactions
+   - Fields: id, sum (Decimal), type (String)
+   - **Issue**: No user relationship or timestamps
+
+4. **TransactionTo** - Outgoing transactions  
+   - Fields: id, sum (Decimal), type (String)
+   - **Issue**: No user relationship or timestamps
+
+5. **Goal** - Financial goals
+   - Fields: id, goal_desc (Text), goal_sum (Decimal), goal_progress (Decimal 0-100)
+   - **Issue**: No user relationship
+
+6. **Savings** - Goal-specific savings
+   - Fields: id, goal (FK), sum (Decimal)
+   - **Issue**: No user relationship
+
+#### Database Relationships:
+- `Savings` → `Goal` (Many-to-One)
+- `Finance` → `TransactionFrom` (Many-to-One)
+- `Finance` → `TransactionTo` (Many-to-One)
+- `Finance` → `Goal` (Many-to-One)
+- **Missing**: User relationships to all models
+
+### API Endpoints Structure
+Base URL: `http://localhost:8000/api/`
+
+#### Available Endpoints:
+- `GET/POST /api/users/` - User CRUD operations
+- `POST /api/users/login/` - User authentication
+- `GET/POST /api/transaction-from/` - Incoming transactions
+- `GET/POST /api/transaction-to/` - Outgoing transactions  
+- `GET/POST /api/finance/` - Financial state management
+- `GET/POST /api/goals/` - Goals management
+- `GET/POST /api/savings/` - Savings tracking
+
+#### Authentication:
+- Login endpoint: `POST /api/users/login/`
+- Request body: `{"email": "string", "password": "string"}`
+- Response: User data with id, name, surname, email, type
+- **Security Warning**: No authentication required for other endpoints
+- **Issue**: All CRUD operations are publicly accessible
+
+## iOS App Architecture Requirements
+
+### Framework & Architecture
+- **Framework**: SwiftUI
+- **Architecture**: MVVM (Model-View-ViewModel)
+- **Navigation**: TabView with 4 main tabs
+
+### App Structure
+
+#### Main Views (TabView):
+1. **Home View** - Dashboard with financial overview
+2. **Chat View** - AI assistant text chat
+3. **Voice View** - AI assistant voice interaction  
+4. **Account View** - User settings and profile
+
+#### Home View Components:
+- **Welcome Message**: "Hello, [user_name]" from User model
+- **Bank Account Status**: Display current_state from Finance model
+- **Tab Sections**:
+  - **History**: Transaction history (TransactionFrom + TransactionTo)
+  - **Goals**: List of goals with icons and progress percentages
+  - **Analysis**: Transaction analysis charts/diagrams
+
+#### Goals Tab Details:
+- Display Goal model data: goal_desc, goal_sum, goal_progress
+- Show progress percentage (goal_progress field)
+- Click to view: completion date, current savings (Savings model)
+- Include goal icons for visual representation
+
+#### Chat View Features:
+- AI assistant with greeting: "Hi [user_name], how can I assist you today?"
+- Text input field for user messages
+- Integration with OpenAI API for responses
+
+#### Voice View Features:
+- Text input field OR voice recording capability
+- AI assistant with chip avatar face
+- Voice-to-text and text-to-speech integration
+
+#### Account View Features:
+- User profile settings (User model fields)
+- Avatar management
+- Name and surname editing
+- App settings
+
+## Development Guidelines
+
+### API Integration Patterns
+1. **Network Layer**: Use URLSession or Alamofire for HTTP requests
+2. **Data Models**: Create Swift structs matching Django serializers
+3. **Error Handling**: Implement proper error handling for API responses
+4. **Authentication**: Store user session data securely (Keychain)
+
+### Data Flow Architecture
+```
+View → ViewModel → NetworkService → Backend API
+  ↑                                    ↓
+  ← Data Models ← JSON Response ← Django Serializer
+```
+
+### Required Swift Models
+```swift
+// User Model (matches Django serializer)
+struct User: Codable {
+    let id: Int
+    let name: String
+    let surname: String
+    let type: String // "adult" | "child"
+    let email: String
+    // Note: password excluded from response (write_only in serializer)
+}
+
+// Finance Model (matches Django serializer)
+struct Finance: Codable {
+    let id: Int
+    let currentState: Decimal
+    let transactionFrom: Int  // FK ID to TransactionFrom
+    let transactionTo: Int    // FK ID to TransactionTo
+    let goals: Int            // FK ID to Goal
+}
+
+// Goal Model (matches Django serializer)
+struct Goal: Codable {
+    let id: Int
+    let goalDesc: String
+    let goalSum: Decimal
+    let goalProgress: Decimal
+}
+
+// Transaction Models (separate for incoming/outgoing)
+struct TransactionFrom: Codable {
+    let id: Int
+    let sum: Decimal
+    let type: String
+}
+
+struct TransactionTo: Codable {
+    let id: Int
+    let sum: Decimal
+    let type: String
+}
+
+// Savings Model (matches Django serializer)
+struct Savings: Codable {
+    let id: Int
+    let goal: Int
+    let sum: Decimal
+}
+
+// Login Request Model
+struct LoginRequest: Codable {
+    let email: String
+    let password: String
+}
+
+// Login Response Model
+struct LoginResponse: Codable {
+    let id: Int
+    let name: String
+    let surname: String
+    let email: String
+    let type: String
+}
+```
+
+### Backend Integration Requirements
+
+#### Authentication Flow:
+1. Login with email/password
+2. Store user ID and session data
+3. Include user context in subsequent API calls
+
+#### Data Fetching Patterns:
+1. **User Profile**: GET `/api/users/{id}/`
+2. **Financial Overview**: GET `/api/finance/` (⚠️ No user filtering - returns all data)
+3. **Transaction History**: 
+   - GET `/api/transaction-from/` (⚠️ No user filtering)
+   - GET `/api/transaction-to/` (⚠️ No user filtering)
+4. **Goals**: GET `/api/goals/` (⚠️ No user filtering)
+5. **Savings**: GET `/api/savings/` (⚠️ No user filtering)
+
+#### Critical Data Issues:
+- **No User Isolation**: All endpoints return data for all users
+- **No Authentication**: All CRUD operations are publicly accessible
+- **No Timestamps**: Transactions lack created_at/updated_at fields
+- **No Pagination**: Large datasets not paginated
+
+#### Real-time Updates:
+- Implement pull-to-refresh for data updates
+- Consider WebSocket integration for real-time notifications
+
+### UI/UX Guidelines
+
+#### Design System:
+- Modern, clean banking app aesthetic
+- Consistent color scheme and typography
+- Responsive design for different screen sizes
+- Accessibility compliance (VoiceOver, Dynamic Type)
+
+#### Navigation:
+- TabView with 4 main sections
+- Smooth transitions between views
+- Proper loading states and error handling
+
+#### Data Visualization:
+- Charts for transaction analysis (Swift Charts)
+- Progress bars for goal completion
+- Clean list layouts for transactions and goals
+
+### Security Considerations
+1. **API Security**: 
+   - ⚠️ **Critical**: No authentication on API endpoints
+   - ⚠️ **Critical**: Passwords stored in plain text
+   - HTTPS only in production
+2. **Data Storage**: Use Keychain for sensitive data
+3. **Authentication**: 
+   - Current: Basic email/password (insecure)
+   - Recommended: JWT tokens or session-based auth
+4. **Input Validation**: Validate all user inputs
+5. **CORS**: No CORS configuration (may cause iOS integration issues)
+6. **Environment Variables**: 
+   - Secret key hardcoded (security risk)
+   - Debug mode enabled (production risk)
+
+### Testing Strategy
+1. **Unit Tests**: ViewModels and business logic
+2. **Integration Tests**: API communication
+3. **UI Tests**: Critical user flows
+4. **Mock Data**: Use sample data for development
+
+### Performance Optimization
+1. **Image Loading**: Efficient image caching and loading
+2. **Data Pagination**: Implement pagination for large datasets
+3. **Memory Management**: Proper cleanup of resources
+4. **Network Optimization**: Request batching and caching
+
+### Deployment Considerations
+1. **Backend**: Docker containerization ready
+2. **Database**: PostgreSQL with proper migrations
+3. **Environment**: Separate dev/staging/production configs
+4. **Monitoring**: Implement logging and error tracking
+
+## Development Workflow
+1. Start backend with `docker-compose up`
+2. Access API docs at `http://localhost:8000/swagger/`
+3. **⚠️ Critical**: Fix security issues before iOS integration:
+   - Implement password hashing
+   - Add authentication to all endpoints
+   - Add user relationships to models
+4. Test API endpoints before iOS integration
+5. Implement iOS models matching backend serializers
+6. Build UI components following MVVM pattern
+7. Integrate AI features with OpenAI API
+8. Test complete user flows end-to-end
+
+## Backend Issues Requiring Immediate Attention
+
+### Critical Security Issues:
+1. **Password Hashing**: Implement bcrypt or Argon2
+2. **Authentication**: Add JWT or session-based auth to all endpoints
+3. **User Data Isolation**: Add user foreign keys to all models
+4. **Environment Configuration**: Move secrets to environment variables
+
+### Data Model Issues:
+1. **Missing User Relationships**: All models need user foreign keys
+2. **No Timestamps**: Add created_at/updated_at to all models
+3. **Data Filtering**: Implement user-specific data filtering
+4. **Pagination**: Add pagination for large datasets
+
+### Production Readiness:
+1. **CORS Configuration**: Add proper CORS settings for iOS
+2. **Error Handling**: Implement comprehensive error responses
+3. **Logging**: Add structured logging
+4. **Database Indexing**: Add indexes on frequently queried fields
+
+## Key Integration Points
+- User authentication and session management
+- Real-time financial data synchronization
+- Goal progress tracking and updates
+- Transaction history management
+- AI chat and voice interaction
+- User profile and settings management
+
+This architecture ensures seamless integration between the iOS SwiftUI app and Django REST API backend, providing a comprehensive banking application with modern UX and robust functionality.
+
+

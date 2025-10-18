@@ -24,17 +24,21 @@ schema_view = get_schema_view(
     openapi.Info(
         title="HackNU API",
         default_version='v1',
-        description="""
-        API для управления пользователями, финансами, целями и накоплениями.
-        
-        Все эндпоинты поддерживают полный CRUD:
-        - GET (list) - получить список
-        - POST (create) - создать новый объект
-        - GET (retrieve) - получить конкретный объект по ID
-        - PUT (update) - полностью обновить объект
-        - PATCH (partial_update) - частично обновить объект
-        - DELETE (destroy) - удалить объект
-        """,
+                description="""
+                API для управления пользователями, финансами, целями и накоплениями.
+                
+                Дополнительные возможности:
+                - AI чат для анализа финансовых данных
+                - Генерация комикс-стрипов с 6 панелями из текста
+                
+                Все эндпоинты поддерживают полный CRUD:
+                - GET (list) - получить список
+                - POST (create) - создать новый объект
+                - GET (retrieve) - получить конкретный объект по ID
+                - PUT (update) - полностью обновить объект
+                - PATCH (partial_update) - частично обновить объект
+                - DELETE (destroy) - удалить объект
+                """,
         contact=openapi.Contact(email="admin@hacknu.com"),
     ),
     public=True,
@@ -47,4 +51,5 @@ urlpatterns = [
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='redoc'),
     path('api/', include('api.urls')),
     path('ai/', include('ai_integration.urls')),
+    path('text-to-image/', include('text_to_image.urls')),
 ]

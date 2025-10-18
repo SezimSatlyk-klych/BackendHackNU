@@ -24,6 +24,7 @@ services:
       - "8000:8000"
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DB_HOST=db
     env_file:
       - .env
     depends_on:

@@ -82,7 +82,7 @@ DATABASES = {
         'NAME': 'hacknu_db',
         'USER': 'postgres',
         'PASSWORD': 'postgres',
-        'HOST': 'db',
+        'HOST': os.environ.get('DB_HOST', 'localhost'),  # 'db' для Docker, 'localhost' для локального запуска
         'PORT': '5432',
     }
 }

@@ -24,7 +24,17 @@ schema_view = get_schema_view(
     openapi.Info(
         title="HackNU API",
         default_version='v1',
-        description="API Documentation",
+        description="""
+        API для управления пользователями, финансами, целями и накоплениями.
+        
+        Все эндпоинты поддерживают полный CRUD:
+        - GET (list) - получить список
+        - POST (create) - создать новый объект
+        - GET (retrieve) - получить конкретный объект по ID
+        - PUT (update) - полностью обновить объект
+        - PATCH (partial_update) - частично обновить объект
+        - DELETE (destroy) - удалить объект
+        """,
     ),
     public=True,
     permission_classes=(permissions.AllowAny,),

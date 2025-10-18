@@ -22,19 +22,10 @@ from drf_yasg import openapi
 
 schema_view = get_schema_view(
     openapi.Info(
-        title="HackNU API",
+        title="HackNU AI Chat API",
         default_version='v1',
-        description="""
-        API для управления пользователями, финансами, целями и накоплениями.
-        
-        Все эндпоинты поддерживают полный CRUD:
-        - GET (list) - получить список
-        - POST (create) - создать новый объект
-        - GET (retrieve) - получить конкретный объект по ID
-        - PUT (update) - полностью обновить объект
-        - PATCH (partial_update) - частично обновить объект
-        - DELETE (destroy) - удалить объект
-        """,
+        description="API для простого AI чата - задавай вопросы и получай ответы",
+        contact=openapi.Contact(email="admin@hacknu.com"),
     ),
     public=True,
     permission_classes=(permissions.AllowAny,),
@@ -44,5 +35,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='swagger'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='redoc'),
-    path('api/', include('api.urls')),
+    path('ai/', include('ai_integration.urls')),
 ]

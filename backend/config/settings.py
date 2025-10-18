@@ -45,7 +45,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'drf_yasg',
     'api',
-    'ai_integration'
+    'ai_integration',
+    'text_to_image',
 ]
 
 MIDDLEWARE = [

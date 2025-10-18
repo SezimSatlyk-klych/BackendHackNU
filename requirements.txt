@@ -4,6 +4,6 @@ drf-yasg==1.21.7
 openai==1.51.0
 python-dotenv==1.0.0
 elevenlabs==0.2.26
-speechrecognition==3.10.0
+SpeechRecognition==3.10.0
 pydub==0.25.1
 

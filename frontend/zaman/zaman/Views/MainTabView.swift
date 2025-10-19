@@ -33,6 +33,12 @@ struct MainTabView: View {
                     Text("Voice")
                 }
             
+            BrokeringView(authViewModel: authViewModel)
+                .tabItem {
+                    Image(systemName: "building.2.fill")
+                    Text("Brokering")
+                }
+            
             AccountView(authViewModel: authViewModel)
                 .tabItem {
                     Image(systemName: "person.fill")

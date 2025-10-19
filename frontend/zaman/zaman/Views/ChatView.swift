@@ -89,6 +89,21 @@ struct ChatView: View {
                         }
                         .padding()
                     }
+                    
+                    // Error message display
+                    if let errorMessage = chatViewModel.errorMessage {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange)
+                            Text("Connection issue: \(errorMessage)")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                        }
+                        .padding()
+                        .background(Color.orange.opacity(0.1))
+                        .cornerRadius(8)
+                        .padding(.horizontal)
+                    }
                 }
                 .padding()
             }
@@ -224,6 +239,9 @@ struct ChatMessageRow: View {
 class ChatViewModel: ObservableObject {
     @Published var messages: [ChatMessage] = []
     @Published var isLoading = false
+    @Published var errorMessage: String?
+    
+    private let networkService = NetworkService.shared
     
     func sendMessage(_ content: String) async {
         // Add user message
@@ -236,36 +254,35 @@ class ChatViewModel: ObservableObject {
         messages.append(userMessage)
         
         isLoading = true
+        errorMessage = nil
         
-        // Simulate AI response (in real app, integrate with OpenAI API)
-        try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second delay
-        
-        let aiResponse = generateAIResponse(for: content)
-        let aiMessage = ChatMessage(
-            id: UUID(),
-            content: aiResponse,
-            isFromUser: false,
-            timestamp: Date()
-        )
-        
-        messages.append(aiMessage)
-        isLoading = false
-    }
-    
-    private func generateAIResponse(for userMessage: String) -> String {
-        let lowercasedMessage = userMessage.lowercased()
-        
-        if lowercasedMessage.contains("balance") || lowercasedMessage.contains("money") {
-            return "I can help you check your current balance and financial status. Your balance information is available in the Home tab."
-        } else if lowercasedMessage.contains("goal") || lowercasedMessage.contains("save") {
-            return "I can assist you with setting and tracking your financial goals. You can view your current goals in the Home tab under the Goals section."
-        } else if lowercasedMessage.contains("transaction") || lowercasedMessage.contains("spending") {
-            return "I can help you analyze your spending patterns and transaction history. Check the History tab for detailed transaction information."
-        } else if lowercasedMessage.contains("help") || lowercasedMessage.contains("how") {
-            return "I'm here to help you with your financial management! I can assist with balance inquiries, goal tracking, spending analysis, and general financial advice. What would you like to know?"
-        } else {
-            return "Thank you for your message! I'm here to help you with your financial needs. You can ask me about your balance, goals, transactions, or any other financial questions you might have."
+        do {
+            // Send request to AI API
+            let aiResponse = try await networkService.sendAIChatMessage(question: content)
+            
+            let aiMessage = ChatMessage(
+                id: UUID(),
+                content: aiResponse.answer,
+                isFromUser: false,
+                timestamp: Date()
+            )
+            
+            messages.append(aiMessage)
+            
+        } catch {
+            // Handle error - show fallback response
+            let errorMessage = ChatMessage(
+                id: UUID(),
+                content: "I'm sorry, I'm having trouble connecting to the AI service right now. Please try again later or check your internet connection.",
+                isFromUser: false,
+                timestamp: Date()
+            )
+            
+            messages.append(errorMessage)
+            self.errorMessage = error.localizedDescription
         }
+        
+        isLoading = false
     }
 }
 

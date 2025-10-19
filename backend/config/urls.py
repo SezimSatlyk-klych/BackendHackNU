@@ -51,8 +51,8 @@ urlpatterns = [
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='swagger'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='redoc'),
     path('api/', include('api.urls')),
-    path('ai/', include('ai_integration.urls')),
-    path('text-to-image/', include('text_to_image.urls')),
-    path('broker/', include('broker_company.urls')),
-    path('investments/', include('investments.urls')),
+    path('api/ai/', include('ai_integration.urls')),
+    path('api/text-to-image/', include('text_to_image.urls')),
+    path('api/broker/', include('broker_company.urls')),
+    path('api/investments/', include('investments.urls')),
 ]

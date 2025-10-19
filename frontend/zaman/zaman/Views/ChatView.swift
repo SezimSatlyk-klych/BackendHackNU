@@ -11,7 +11,9 @@ import SwiftUI
 struct ChatView: View {
     @ObservedObject var authViewModel: AuthViewModel
     @StateObject private var chatViewModel = ChatViewModel()
+    @StateObject private var imageViewModel = ImageGenerationViewModel()
     @State private var messageText = ""
+    @State private var showingImageFullscreen = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -25,6 +27,28 @@ struct ChatView: View {
             messageInputView
         }
         .background(Color(.systemGroupedBackground))
+        .overlay(
+            // Image Generation Loading Overlay
+            Group {
+                if imageViewModel.isLoading {
+                    imageGenerationLoadingOverlay
+                }
+            }
+        )
+        .sheet(isPresented: $showingImageFullscreen) {
+            if let image = imageViewModel.generatedImage {
+                FullscreenImageView(image: image)
+            }
+        }
+        .alert("Error", isPresented: .constant(imageViewModel.errorMessage != nil)) {
+            Button("OK") {
+                imageViewModel.clearError()
+            }
+        } message: {
+            if let error = imageViewModel.errorMessage {
+                Text(error)
+            }
+        }
     }
     
     // MARK: - AI Assistant Header
@@ -75,8 +99,15 @@ struct ChatView: View {
                     
                     // Chat Messages
                     ForEach(chatViewModel.messages) { message in
-                        ChatMessageRow(message: message)
-                            .id(message.id)
+                        ChatMessageRow(
+                            message: message,
+                            onGenerateComic: {
+                                Task {
+                                    await imageViewModel.generateImage(prompt: message.content)
+                                }
+                            }
+                        )
+                        .id(message.id)
                     }
                     
                     if chatViewModel.isLoading {
@@ -88,6 +119,11 @@ struct ChatView: View {
                                 .foregroundColor(.secondary)
                         }
                         .padding()
+                    }
+                    
+                    // Generated Comic Strip Display
+                    if imageViewModel.hasGeneratedImage {
+                        generatedComicSection
                     }
                     
                     // Error message display
@@ -146,6 +182,20 @@ struct ChatView: View {
                     sendMessage()
                 }
             
+            // Image Icon Button
+            Button(action: {
+                // TODO: Implement image picker functionality
+                print("Image picker tapped")
+            }) {
+                Image(systemName: "photo")
+                    .foregroundColor(.teal)
+                    .font(.system(size: 18))
+                    .frame(width: 36, height: 36)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(18)
+            }
+            
+            // Send Message Button
             Button(action: sendMessage) {
                 Image(systemName: "paperplane.fill")
                     .foregroundColor(.white)
@@ -179,11 +229,98 @@ struct ChatView: View {
             await chatViewModel.sendMessage(message)
         }
     }
+    
+    // MARK: - Generated Comic Section
+    private var generatedComicSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "book.closed.fill")
+                    .foregroundColor(.blue)
+                    .font(.caption)
+                Text("Generated Comic")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.blue)
+            }
+            
+            if let image = imageViewModel.generatedImage {
+                Button(action: {
+                    showingImageFullscreen = true
+                }) {
+                    Image(uiImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(maxHeight: 200)
+                        .cornerRadius(12)
+                        .shadow(radius: 4)
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                HStack(spacing: 12) {
+                    Button("View Fullscreen") {
+                        showingImageFullscreen = true
+                    }
+                    .buttonStyle(.bordered)
+                    .font(.caption)
+                    
+                    Button("Generate New") {
+                        imageViewModel.resetGeneration()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .font(.caption)
+                }
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+        .padding(.horizontal)
+    }
+    
+    // MARK: - Image Generation Loading Overlay
+    private var imageGenerationLoadingOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.3)
+                .ignoresSafeArea()
+            
+            VStack(spacing: 20) {
+                ProgressView()
+                    .scaleEffect(1.5)
+                    .tint(.white)
+                
+                Text("Creating Comic...")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                
+                Text("Generating a 6-panel comic strip from the AI response")
+                    .font(.subheadline)
+                    .foregroundColor(.white.opacity(0.8))
+                    .multilineTextAlignment(.center)
+                
+                if imageViewModel.isGenerating {
+                    ProgressView(value: imageViewModel.generationProgress)
+                        .progressViewStyle(LinearProgressViewStyle())
+                        .tint(.white)
+                        .frame(width: 200)
+                    
+                    Text("\(Int(imageViewModel.generationProgress * 100))%")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.8))
+                }
+            }
+            .padding(40)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color.black.opacity(0.8))
+            )
+        }
+    }
 }
 
 // MARK: - Chat Message Row
 struct ChatMessageRow: View {
     let message: ChatMessage
+    let onGenerateComic: () -> Void
     
     var body: some View {
         HStack {
@@ -221,6 +358,29 @@ struct ChatMessageRow: View {
                         .padding()
                         .background(Color(.systemGray6))
                         .cornerRadius(16, corners: [.topLeft, .topRight, .bottomRight])
+                    
+                    // Generate Comic Button for AI responses
+                    Button(action: onGenerateComic) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "book.closed.fill")
+                                .font(.caption)
+                            Text("Create Comic")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(
+                            LinearGradient(
+                                gradient: Gradient(colors: [Color.blue, Color.purple]),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .cornerRadius(12)
+                    }
+                    .buttonStyle(PlainButtonStyle())
                     
                     Text(message.timestamp, style: .time)
                         .font(.caption2)
@@ -312,6 +472,34 @@ struct RoundedCorner: Shape {
             cornerRadii: CGSize(width: radius, height: radius)
         )
         return Path(path.cgPath)
+    }
+}
+
+// MARK: - Fullscreen Image View
+struct FullscreenImageView: View {
+    let image: UIImage
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            ZStack {
+                Color.black.ignoresSafeArea()
+                
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .ignoresSafeArea()
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .foregroundColor(.white)
+                }
+            }
+        }
     }
 }
 

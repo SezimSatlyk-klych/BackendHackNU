@@ -342,6 +342,69 @@ class NetworkService: ObservableObject {
         }
     }
     
+    // MARK: - Text to Image Operations
+    
+    func createImageGeneration(prompt: String) async throws -> ImageGeneration {
+        let url = URL(string: "\(baseURL)/text-to-image/generations/")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let generationRequest = ImageGenerationRequest(prompt: prompt)
+        request.httpBody = try JSONEncoder().encode(generationRequest)
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NetworkError.invalidResponse
+        }
+        
+        switch httpResponse.statusCode {
+        case 201:
+            return try JSONDecoder().decode(ImageGeneration.self, from: data)
+        case 400:
+            throw NetworkError.badRequest
+        case 500:
+            throw NetworkError.serverError
+        default:
+            throw NetworkError.requestFailed(httpResponse.statusCode)
+        }
+    }
+    
+    func fetchImageGeneration(id: Int) async throws -> ImageGeneration {
+        let url = URL(string: "\(baseURL)/text-to-image/generations/\(id)/")!
+        return try await performRequest(url: url, responseType: ImageGeneration.self)
+    }
+    
+    func fetchAllImageGenerations() async throws -> [ImageGeneration] {
+        let url = URL(string: "\(baseURL)/text-to-image/generations/")!
+        return try await performRequest(url: url, responseType: [ImageGeneration].self)
+    }
+    
+    func forceImageGeneration(id: Int) async throws -> ForceGenerationResponse {
+        let url = URL(string: "\(baseURL)/text-to-image/generations/\(id)/generate/")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NetworkError.invalidResponse
+        }
+        
+        switch httpResponse.statusCode {
+        case 200:
+            return try JSONDecoder().decode(ForceGenerationResponse.self, from: data)
+        case 404:
+            throw NetworkError.notFound
+        case 500:
+            throw NetworkError.serverError
+        default:
+            throw NetworkError.requestFailed(httpResponse.statusCode)
+        }
+    }
+    
     // MARK: - Generic Request Method
     private func performRequest<T: Codable>(url: URL, responseType: T.Type) async throws -> T {
         print("🌐 NetworkService: Making request to \(url)")

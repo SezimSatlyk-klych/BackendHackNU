@@ -39,3 +39,4 @@ struct AIChatResponse: Codable {
 struct AIChatErrorResponse: Codable {
     let error: String
 }
+

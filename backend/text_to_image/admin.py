@@ -12,4 +12,4 @@ class ImageGenerationAdmin(admin.ModelAdmin):
     
     def prompt_short(self, obj):
         return obj.prompt[:50] + "..." if len(obj.prompt) > 50 else obj.prompt
-    prompt_short.short_description = 'Промпт'
+    prompt_short.short_description = 'Описание комикса'

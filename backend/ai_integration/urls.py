@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from .audio_view import VoiceToVoiceAudioView
 
 urlpatterns = [
     # AI Chat endpoint
@@ -7,4 +8,7 @@ urlpatterns = [
     
     # Voice-to-Voice endpoint (единственный voice endpoint)
     path('voice/', views.VoiceToVoiceView.as_view(), name='voice-to-voice'),
+    
+    # Voice-to-Voice endpoint (возвращает готовый аудио файл)
+    path('voice/audio/', VoiceToVoiceAudioView.as_view(), name='voice-to-voice-audio'),
 ]

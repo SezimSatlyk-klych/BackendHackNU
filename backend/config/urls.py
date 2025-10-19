@@ -30,6 +30,7 @@ schema_view = get_schema_view(
                 Дополнительные возможности:
                 - AI чат для анализа финансовых данных
                 - Генерация комикс-стрипов с 6 панелями из текста
+                - Брокерская компания (в разработке)
                 
                 Все эндпоинты поддерживают полный CRUD:
                 - GET (list) - получить список
@@ -52,4 +53,6 @@ urlpatterns = [
     path('api/', include('api.urls')),
     path('ai/', include('ai_integration.urls')),
     path('text-to-image/', include('text_to_image.urls')),
+    path('broker/', include('broker_company.urls')),
+    path('investments/', include('investments.urls')),
 ]

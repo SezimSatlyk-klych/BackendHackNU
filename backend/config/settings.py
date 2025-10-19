@@ -47,6 +47,8 @@ INSTALLED_APPS = [
     'api',
     'ai_integration',
     'text_to_image',
+    'investments',
+    'broker_company',
 ]
 
 MIDDLEWARE = [

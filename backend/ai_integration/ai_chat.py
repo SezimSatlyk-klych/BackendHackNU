@@ -162,22 +162,3 @@ def ask_ai(question: str, context: Optional[str] = None) -> str:
     else:
         return f"Ошибка: {result['error']}"
 
-# Пример использования
-if __name__ == "__main__":
-    # Создаем экземпляр сервиса
-    ai_chat = AIChatService()
-    
-    # Простой вопрос
-    result = ai_chat.ask_question("Привет! Как дела?")
-    print("Ответ:", result["answer"] if result["success"] else result["error"])
-    
-    # Вопрос с контекстом
-    result = ai_chat.ask_question(
-        "Что такое машинное обучение?", 
-        context="Пользователь изучает программирование"
-    )
-    print("Ответ с контекстом:", result["answer"] if result["success"] else result["error"])
-    
-    # Использование простой функции
-    answer = ask_ai("Расскажи про Python")
-    print("Простой ответ:", answer)
